@@ -69,6 +69,9 @@ BEGIN_MESSAGE_MAP(CMFCDemo2Dlg, CDialogEx)
 
 	ON_STN_CLICKED(IDC_STATIC_ORG_BMP, &CMFCDemo2Dlg::OnStnClickedStaticOrgBmp)
 
+	ON_STN_CLICKED(IDC_STATIC_ORG_BMP, &CMFCDemo2Dlg::OnStnClickedStaticOrgBmp)
+	ON_STN_CLICKED(IDC_STATIC_ORG_BMP, &CMFCDemo2Dlg::OnStnClickedStaticOrgBmp)
+	ON_STN_CLICKED(IDC_STATIC_OBJ_BMP, &CMFCDemo2Dlg::OnStnClickedStaticObjBmp)
 END_MESSAGE_MAP()
 
 
@@ -133,7 +136,7 @@ void CMFCDemo2Dlg::OnPaint()
 	GetDlgItem(IDC_STATIC_ORG_BMP)->GetClientRect(&rectOrcBmp);
 	ptLeftTop.x = rectOrcBmp.left;
 	ptLeftTop.y = rectOrcBmp.top;
-	m_image_org.ShowImage(GetDlgItem(IDC_STATIC_ORG_BMP)->GetDC(), ptLeftTop);
+	m_image_org.ShowImage(GetDlgItem(IDC_STATIC_ORG_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	if (IsIconic())
 	{
 		CPaintDC dc(this); // 用于绘制的设备上下文
@@ -183,6 +186,18 @@ void CMFCDemo2Dlg::OnBnClickedBtnOpenFile()
 
 		m_image_org.ImportFrom(strFilePath);//显示图像
 
-		m_image_org.ShowImage(GetDlgItem(IDC_STATIC_ORG_BMP)->GetDC(), ptLeftTop);
+		m_image_org.ShowImage(GetDlgItem(IDC_STATIC_ORG_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	}
+}
+
+
+void CMFCDemo2Dlg::OnStnClickedStaticOrgBmp()
+{
+	// TODO: 在此添加控件通知处理程序代码
+}
+
+
+void CMFCDemo2Dlg::OnStnClickedStaticObjBmp()
+{
+	// TODO: 在此添加控件通知处理程序代码
 }

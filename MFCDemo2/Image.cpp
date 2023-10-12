@@ -601,8 +601,8 @@ namespace HH
 		imageHeight = ( imageHeight > 0 ) ? imageHeight : - imageHeight ; // [ 修正图像高度 ]
 		bool isBottomUp = bitmapInfoHeader->biHeight > 0; // [ 图像存储顺序 ]
 		long bitCount = bitmapInfoHeader->biBitCount; // [ 像素存储位数 ]
-		long bytesPerMemoryRow = ( imageWidth * bitCount + 7 ) / 8 ; // [ 内存中图像行存储字节数 ]
-		long bytesPerFileRow = ( ( bytesPerMemoryRow + 3 ) / 4 ) * 4 ; // [ 文件中图像行存储字节数 ]
+		long bytesPerMemoryRow = ( imageWidth * bitCount + 7 ) / 8 ; // [ 内存中图像行存储字节数 ] 4字节对齐
+		long bytesPerFileRow = ( ( bytesPerMemoryRow + 3 ) / 4 ) * 4 ; // [ 文件中图像行存储字节数 ]	向上取整 4字节对齐
 
 		switch( bitCount ) // [ 像素存储位数 ]
 		{
