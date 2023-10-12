@@ -38,4 +38,5 @@ public:
 
 	HH::CImage m_image_org;
 	afx_msg void OnStnClickedStaticOrgBmp();
+	afx_msg void OnStnClickedStaticObjBmp();
 };
