@@ -37,6 +37,9 @@ public:
 	afx_msg void OnBnClickedBtnOpenFile();
 
 	HH::CImage m_image_org;
+	HH::CImage m_image_Obj;
 	afx_msg void OnStnClickedStaticOrgBmp();
 	afx_msg void OnStnClickedStaticObjBmp();
+	CComboBox m_combFunc;
+	afx_msg void OnCbnSelchangeComboFunc();
 };

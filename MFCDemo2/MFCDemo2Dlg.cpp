@@ -8,6 +8,8 @@
 #include "MFCDemo2Dlg.h"
 #include "afxdialogex.h"
 
+#include "ImageProcess.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -59,6 +61,7 @@ CMFCDemo2Dlg::CMFCDemo2Dlg(CWnd* pParent /*=nullptr*/)
 void CMFCDemo2Dlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_COMBO_FUNC, m_combFunc);
 }
 
 BEGIN_MESSAGE_MAP(CMFCDemo2Dlg, CDialogEx)
@@ -72,6 +75,7 @@ BEGIN_MESSAGE_MAP(CMFCDemo2Dlg, CDialogEx)
 	ON_STN_CLICKED(IDC_STATIC_ORG_BMP, &CMFCDemo2Dlg::OnStnClickedStaticOrgBmp)
 	ON_STN_CLICKED(IDC_STATIC_ORG_BMP, &CMFCDemo2Dlg::OnStnClickedStaticOrgBmp)
 	ON_STN_CLICKED(IDC_STATIC_OBJ_BMP, &CMFCDemo2Dlg::OnStnClickedStaticObjBmp)
+	ON_CBN_SELCHANGE(IDC_COMBO_FUNC, &CMFCDemo2Dlg::OnCbnSelchangeComboFunc)
 END_MESSAGE_MAP()
 
 
@@ -107,7 +111,8 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-
+	m_combFunc.AddString("图像平移");
+	m_combFunc.AddString("图像镜像翻转");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -200,4 +205,43 @@ void CMFCDemo2Dlg::OnStnClickedStaticOrgBmp()
 void CMFCDemo2Dlg::OnStnClickedStaticObjBmp()
 {
 	// TODO: 在此添加控件通知处理程序代码
+}
+
+
+void CMFCDemo2Dlg::OnCbnSelchangeComboFunc()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	int nIndex = m_combFunc.GetCurSel();
+
+	CString str;
+
+	CPoint ptLeftTop;
+	CRect rectOrcBmp;
+	GetDlgItem(IDC_STATIC_OBJ_BMP)->GetClientRect(&rectOrcBmp);
+	ptLeftTop.x = rectOrcBmp.left;
+	ptLeftTop.y = rectOrcBmp.top;
+
+
+	m_combFunc.GetLBText(nIndex, str);
+
+	if (0 == str.Compare("图像平移"))
+	{
+		if (m_image_org.IsColorImage())
+		{
+			long delta_x = 60;
+			long delta_y = 30;
+			CTMatrix< RGB_TRIPLE > translated_image = CImageProcess::Image_translation(m_image_org.Get_color_image(), delta_x, delta_y);
+			m_image_Obj.ImportFrom(translated_image);
+
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+		}
+
+	}
+	else if (0 == str.Compare("图像镜像翻转"))
+	{
+		CTMatrix< RGB_TRIPLE > Image_mirror = CImageProcess::Image_mirror(m_image_org.Get_color_image(), true);
+		m_image_Obj.ImportFrom(Image_mirror);
+
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
 }

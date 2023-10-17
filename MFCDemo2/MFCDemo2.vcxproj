@@ -186,6 +186,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="ImagePoint.h" />
+    <ClInclude Include="ImageProcess.h" />
     <ClInclude Include="Include.h" />
     <ClInclude Include="MFCDemo2.h" />
     <ClInclude Include="MFCDemo2Dlg.h" />
@@ -200,6 +201,7 @@
   <ItemGroup>
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="ImagePoint.cpp" />
+    <ClCompile Include="ImageProcess.cpp" />
     <ClCompile Include="MFCDemo2.cpp" />
     <ClCompile Include="MFCDemo2Dlg.cpp" />
     <ClCompile Include="pch.cpp">

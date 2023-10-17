@@ -54,6 +54,9 @@
     <ClInclude Include="Include.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ImageProcess.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MFCDemo2.cpp">
@@ -69,6 +72,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="ImagePoint.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageProcess.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
