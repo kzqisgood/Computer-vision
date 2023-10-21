@@ -113,6 +113,10 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 	m_combFunc.AddString("图像平移");
 	m_combFunc.AddString("图像镜像翻转");
+	m_combFunc.AddString("图像仿射变换");
+	m_combFunc.AddString("图像仿射转置");
+	m_combFunc.AddString("图像旋转");
+	m_combFunc.AddString("图像缩放");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -243,5 +247,36 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc()
 		m_image_Obj.ImportFrom(Image_mirror);
 
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("图像仿射变换"))
+	{
+		CTMatrix< RGB_TRIPLE > Image_affine = CImageProcess::Image_affine(m_image_org.Get_color_image(), 0.1, 0.1, 0.3, 0.3, 0.4, 0.2);
+		m_image_Obj.ImportFrom(Image_affine);
+
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("图像仿射转置"))
+	{
+		CTMatrix< RGB_TRIPLE > Image_transpose =CImageProcess::Image_transpose(m_image_org.Get_color_image());
+		m_image_Obj.ImportFrom(Image_transpose);
+
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("图像旋转"))
+	{
+		CTMatrix< RGB_TRIPLE > Image_rotation = CImageProcess::Image_rotation(m_image_org.Get_color_image(), 90);
+		m_image_Obj.ImportFrom(Image_rotation);
+
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("图像缩放"))
+	{
+		double h1, w1;
+		h1 = 0.5;
+		w1 = 0.5;
+		CTMatrix< RGB_TRIPLE > Image_zoom = CImageProcess::Image_zoom(m_image_org.Get_color_image(), w1, h1);
+		m_image_Obj.ImportFrom(Image_zoom);
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width()*w1, rectOrcBmp.Height()*h1));
+//		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(m_image_org.Get_image_width(), m_image_org.Get_image_height()));
 	}
 }
