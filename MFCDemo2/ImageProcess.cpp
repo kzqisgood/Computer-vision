@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ImageProcess.h"
 #include "math.h"
-
+#include <stdlib.h>
 
 CImageProcess::CImageProcess(void)
 {
@@ -181,3 +181,132 @@ CTMatrix< RGB_TRIPLE > CImageProcess::Image_zoom(const CTMatrix< RGB_TRIPLE >& c
 
 	return dest_image;
 }
+
+// [ *************** ] ...................................................
+// [ Robert 边缘算子 ] ...................................................
+// [ *************** ] ...................................................
+CTMatrix< BYTE > CImageProcess::Robert_edge_operator(const CTMatrix< BYTE >& gray_image)
+{
+	long image_height = gray_image.Get_height();
+	long image_width = gray_image.Get_width();
+
+	CTMatrix< BYTE > edge_image(image_height, image_width);
+
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+		{
+			if (row == 0 || row == image_height - 1 || column == 0 || column == image_width - 1)
+			{
+				edge_image[row][column] = 0;
+			}
+			else
+			{
+				edge_image[row][column] = max(abs(gray_image[row - 1][column - 1] - gray_image[row + 1][column + 1]),
+					abs(gray_image[row - 1][column + 1] - gray_image[row + 1][column - 1]));
+			}
+		}
+
+	return edge_image;
+}
+
+//// [ ************ ] ......................................................
+//// [ 二维卷积操作 ] ......................................................
+//// [ ************ ] ......................................................
+//CTMatrix< BYTE > Convolution_operation(const CTMatrix< BYTE >& gray_image, const CTMatrix< float >& mask)
+//{
+//	float sum_of_mask = 0;
+//	for (int row = 0; row < mask.Get_height(); row++)
+//		for (int column = 0; column < mask.Get_width(); column++)
+//			sum_of_mask += mask[row][column];
+//	if (sum_of_mask != 0)
+//		for (int row = 0; row < mask.Get_height(); row++)
+//			for (int column = 0; column < mask.Get_width(); column++)
+//				mask[row][column] /= sum_of_mask;
+//
+//	int mask_half_height = mask.Get_height() / 2;
+//	int mask_half_width = mask.Get_width() / 2;
+//
+//	CTMatrix< BYTE > edge_image = gray_image;
+//
+//	for (int row = 0; row < gray_image.Get_height(); row++)
+//		for (int column = 0; column < gray_image.Get_width(); column++)
+//			if (row < mask_half_height || row > gray_image.Get_height() - 1 - mask_half_height ||
+//				column < mask_half_width || column > gray_image.Get_width() - 1 - mask_half_width)
+//			{
+//				edge_image[row][column] = 0;
+//			}
+//			else
+//			{
+//				double sum_of_convolution = 0;
+//
+//				for (int sub_row = 0; sub_row < mask.Get_height(); sub_row++)
+//					for (int sub_column = 0; sub_column < mask.Get_width(); sub_column++)
+//						sum_of_convolution += mask[sub_row][sub_column]
+//						* gray_image[row + sub_row - mask_half_height][column + sub_column - mask_half_width];
+//
+//				edge_image[row][column] = BYTE( abs(sum_of_convolution));
+//			}
+//
+//	return edge_image;
+//}
+//
+//// [ ************************** ] ........................................
+//// [ Sobel 边缘算子（梯度强度） ] ........................................
+//// [ ************************** ] ........................................
+//CTMatrix< BYTE > CImageProcess::Sobel_edge_operator(const CTMatrix< BYTE >& gray_image)
+//{
+//	CTMatrix< BYTE > horizontal = Sobel_edge_horizontal(gray_image);
+//	CTMatrix< BYTE > vertical = Sobel_edge_vertical(gray_image);
+//
+//	CTMatrix< BYTE > edge_image = gray_image;
+//
+//	for (int row = 0; row < gray_image.Get_height(); row++)
+//		for (int column = 0; column < gray_image.Get_width(); column++)
+//		{
+//			edge_image[row][column] = BYTE(sqrt(double(horizontal[row][column] * horizontal[row][column]
+//				+ vertical[row][column] * vertical[row][column])) / 1.414);
+//		}
+//
+//	return edge_image;
+//}
+//
+//
+//// [ ************************** ] ........................................
+//// [ Sobel 边缘算子（垂直方向） ] ........................................
+//// [ ************************** ] ........................................
+//CTMatrix< BYTE > CImageProcess::Sobel_edge_vertical(const CTMatrix< BYTE >& gray_image)
+//{
+//	CTMatrix< float > mask_one(1, 3);
+//	CTMatrix< float > mask_two(3, 1);
+//
+//	mask_one[0][0] = 1;
+//	mask_one[0][1] = 2;
+//	mask_one[0][2] = 1;
+//
+//	mask_two[0][0] = 1;
+//	mask_two[1][0] = 0;
+//	mask_two[2][0] = -1;
+//
+//	CTMatrix< BYTE > temp = Convolution_operation(gray_image, mask_one);
+//	return Convolution_operation(temp, mask_two);
+//}
+//
+//// [ ************************** ] ........................................
+//// [ Sobel 边缘算子（水平方向） ] ........................................
+//// [ ************************** ] ........................................
+//CTMatrix< BYTE > CImageProcess::Sobel_edge_horizontal(const CTMatrix< BYTE >& gray_image)
+//{
+//	CTMatrix< float > mask_one(1, 3);
+//	CTMatrix< float > mask_two(3, 1);
+//
+//	mask_one[0][0] = 1;
+//	mask_one[0][1] = 0;
+//	mask_one[0][2] = -1;
+//
+//	mask_two[0][0] = 1;
+//	mask_two[1][0] = 2;
+//	mask_two[2][0] = 1;
+//
+//	CTMatrix< BYTE > temp = Convolution_operation(gray_image, mask_one);
+//	return Convolution_operation(temp, mask_two);
+//}
