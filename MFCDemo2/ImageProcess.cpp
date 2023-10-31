@@ -2,6 +2,7 @@
 #include "ImageProcess.h"
 #include "math.h"
 #include <stdlib.h>
+#include <cstdlib>
 
 CImageProcess::CImageProcess(void)
 {
@@ -52,6 +53,9 @@ CTMatrix< RGB_TRIPLE > CImageProcess::Image_translation(const CTMatrix< RGB_TRIP
 	return translated_image;
 }
 
+// [ ******** ] ..........................................................
+// [ Í¼Ïñ¾µÏñ ] ..........................................................
+// [ ******** ] ..........................................................
 CTMatrix< RGB_TRIPLE > CImageProcess::Image_mirror(const CTMatrix< RGB_TRIPLE >& color_image, bool is_horizontal)
 {
 	long image_height = color_image.Get_height();
@@ -71,6 +75,9 @@ CTMatrix< RGB_TRIPLE > CImageProcess::Image_mirror(const CTMatrix< RGB_TRIPLE >&
 	return dest_image;
 }
 
+// [ ******** ] ..........................................................
+// [ Í¼Ïñ·ÂÉä±ä»» ] ..........................................................
+// [ ******** ] ..........................................................
 CTMatrix< RGB_TRIPLE > CImageProcess::Image_affine(const CTMatrix< RGB_TRIPLE >& color_image, double m00, double m01, double m02, double m10, double m11, double m12)
 {
 	long source_height = color_image.Get_height();
@@ -95,6 +102,9 @@ CTMatrix< RGB_TRIPLE > CImageProcess::Image_affine(const CTMatrix< RGB_TRIPLE >&
 	return dest_image;
 }
 
+// [ ******** ] ..........................................................
+// [ Í¼Ïñ×ªÖÃ ] ..........................................................
+// [ ******** ] ..........................................................
 CTMatrix< RGB_TRIPLE > CImageProcess::Image_transpose(const CTMatrix< RGB_TRIPLE >& color_image)
 {
 	long image_height = color_image.Get_height();

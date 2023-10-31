@@ -114,9 +114,10 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	m_combFunc.AddString("图像平移");
 	m_combFunc.AddString("图像镜像翻转");
 	m_combFunc.AddString("图像仿射变换");
-	m_combFunc.AddString("图像仿射转置");
+	m_combFunc.AddString("图像转置");
 	m_combFunc.AddString("图像旋转");
 	m_combFunc.AddString("图像缩放");
+	m_combFunc.AddString("边缘算子");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -167,6 +168,7 @@ void CMFCDemo2Dlg::OnPaint()
 	{
 		CDialogEx::OnPaint();
 	}
+	CPaintDC dc(this);
 }
 
 //当用户拖动最小化窗口时系统调用此函数取得光标
@@ -255,7 +257,7 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc()
 
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	}
-	else if (0 == str.Compare("图像仿射转置"))
+	else if (0 == str.Compare("图像转置"))
 	{
 		CTMatrix< RGB_TRIPLE > Image_transpose =CImageProcess::Image_transpose(m_image_org.Get_color_image());
 		m_image_Obj.ImportFrom(Image_transpose);
@@ -278,5 +280,11 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc()
 		m_image_Obj.ImportFrom(Image_zoom);
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width()*w1, rectOrcBmp.Height()*h1));
 //		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(m_image_org.Get_image_width(), m_image_org.Get_image_height()));
+	}
+	else if (0 == str.Compare("边缘算子"))
+	{
+		CTMatrix< BYTE > Robert_edge_operator = CImageProcess::Robert_edge_operator(m_image_org.Get_gray_image());
+		m_image_Obj.ImportFrom(Robert_edge_operator);
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	}
 }

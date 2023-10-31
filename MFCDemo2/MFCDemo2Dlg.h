@@ -38,6 +38,7 @@ public:
 
 	HH::CImage m_image_org;
 	HH::CImage m_image_Obj;
+	HH::CImage m_grayImage;
 	afx_msg void OnStnClickedStaticOrgBmp();
 	afx_msg void OnStnClickedStaticObjBmp();
 	CComboBox m_combFunc;

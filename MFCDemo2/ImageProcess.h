@@ -24,10 +24,10 @@ public:
 	static CTMatrix< RGB_TRIPLE > CImageProcess::Image_rotation(const CTMatrix< RGB_TRIPLE >& color_image, long degrees);
 	static CTMatrix< RGB_TRIPLE > CImageProcess::Image_zoom(const CTMatrix< RGB_TRIPLE >& color_image, double horizontal_scale, double vertical_scale);
 	static CTMatrix< BYTE > CImageProcess::Robert_edge_operator(const CTMatrix< BYTE >& gray_image);
-	//static CTMatrix< BYTE > Convolution_operation(const CTMatrix< BYTE >& gray_image, const CTMatrix< float >& mask);
-	//static CTMatrix< BYTE > CImageProcess::Sobel_edge_operator(const CTMatrix< BYTE >& gray_image);
-	//static CTMatrix< BYTE > CImageProcess::Sobel_edge_vertical(const CTMatrix< BYTE >& gray_image);
-	//static CTMatrix< BYTE > CImageProcess::Sobel_edge_horizontal(const CTMatrix< BYTE >& gray_image);
+	static CTMatrix< BYTE > Convolution_operation(const CTMatrix< BYTE >& gray_image, const CTMatrix< float >& mask);
+	static CTMatrix< BYTE > CImageProcess::Sobel_edge_operator(const CTMatrix< BYTE >& gray_image);
+	static CTMatrix< BYTE > CImageProcess::Sobel_edge_vertical(const CTMatrix< BYTE >& gray_image);
+	static CTMatrix< BYTE > CImageProcess::Sobel_edge_horizontal(const CTMatrix< BYTE >& gray_image);
 };
 
 #endif//_MFCDEMO2_IMAGEPROCESS_H_
