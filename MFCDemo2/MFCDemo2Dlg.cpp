@@ -118,6 +118,7 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	m_combFunc.AddString("图像旋转");
 	m_combFunc.AddString("图像缩放");
 	m_combFunc.AddString("边缘算子");
+	m_combFunc.AddString("Sobel 边缘算子（水平方向)");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -285,6 +286,12 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc()
 	{
 		CTMatrix< BYTE > Robert_edge_operator = CImageProcess::Robert_edge_operator(m_image_org.Get_gray_image());
 		m_image_Obj.ImportFrom(Robert_edge_operator);
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("Sobel 边缘算子（水平方向)"))
+	{
+		CTMatrix< BYTE > Sobel_edge_horizontal = CImageProcess::Sobel_edge_horizontal(m_image_org.Get_gray_image());
+		m_image_Obj.ImportFrom(Sobel_edge_horizontal);
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	}
 }
