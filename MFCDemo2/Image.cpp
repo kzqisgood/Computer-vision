@@ -1260,4 +1260,42 @@ namespace HH
 
 		bitmapFile.Close(); // [ 关闭文件 ]
 	}
+
+
+// [ *********************** ] ...........................................
+// [ 保存灰度图像为 BMP 文件 ] ...........................................
+// [ *********************** ] ...........................................
+	void CImage::ColorToGray()
+	{
+		if (m_colorImage.IsNull()) // [ 判断图像是否为空 ]
+			return;
+
+		int nIndex = 0;
+		long imageHeight = m_colorImage.GetRows();   // [ 图像高度( 像素 ) ]
+		long imageWidth = m_colorImage.GetColumns(); // [ 图像宽度( 像素 ) ]
+		long bytesPerRow = imageWidth * 3;			 // [ 彩色图像行存储字节数 ]
+
+		m_imageType = Gray; // [ 设为灰度图像 ]
+		m_grayImage.Construction(imageHeight, imageWidth); // [ 构造图像 ]
+
+		BYTE* swapBufferColor = new BYTE[imageHeight * imageWidth * 3]; // [ 申请缓冲区 ]
+		BYTE* swapBufferGray = new BYTE[imageHeight * imageWidth]; // [ 申请缓冲区 ]
+
+		m_colorImage.ExportTo(swapBufferColor);
+
+		for (int row = 0; row < imageHeight; row++)
+			for (int column = 0; column < imageWidth; column++)
+			{
+				nIndex = row * bytesPerRow + column * 3;
+				BYTE grayValue = BYTE(swapBufferColor[nIndex] * 0.11 + swapBufferColor[nIndex + 1] * 0.59 + swapBufferColor[nIndex + 2] * 0.3); // [ 最大颜色分量 ]
+				swapBufferGray[row * imageWidth + column] = grayValue; // [ 灰度设置 ]
+			}
+
+		m_grayImage.ImportFrom(swapBufferGray); // [ 导入图像内容 ]
+
+		delete[] swapBufferColor; // [ 释放缓冲区 ]
+		delete[] swapBufferGray; // [ 释放缓冲区 ]
+
+		//m_colorImage.Destruction();
+	}
 }

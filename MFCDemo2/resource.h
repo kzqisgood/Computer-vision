@@ -12,6 +12,8 @@
 #define IDC_STATIC_OBJ_BMP              1002
 #define IDC_COMBO1                      1003
 #define IDC_COMBO_FUNC                  1003
+#define IDC_COMBO_IMAGE_SEGMENT         1004
+#define IDC_BTN_CLEAR                   1005
 
 // Next default values for new objects
 // 

@@ -62,6 +62,7 @@ void CMFCDemo2Dlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_COMBO_FUNC, m_combFunc);
+	DDX_Control(pDX, IDC_COMBO_IMAGE_SEGMENT, m_comboImageSegment);
 }
 
 BEGIN_MESSAGE_MAP(CMFCDemo2Dlg, CDialogEx)
@@ -76,6 +77,8 @@ BEGIN_MESSAGE_MAP(CMFCDemo2Dlg, CDialogEx)
 	ON_STN_CLICKED(IDC_STATIC_ORG_BMP, &CMFCDemo2Dlg::OnStnClickedStaticOrgBmp)
 	ON_STN_CLICKED(IDC_STATIC_OBJ_BMP, &CMFCDemo2Dlg::OnStnClickedStaticObjBmp)
 	ON_CBN_SELCHANGE(IDC_COMBO_FUNC, &CMFCDemo2Dlg::OnCbnSelchangeComboFunc)
+	ON_CBN_SELCHANGE(IDC_COMBO_IMAGE_SEGMENT, &CMFCDemo2Dlg::OnCbnSelchangeComboImageSegment)
+	ON_BN_CLICKED(IDC_BTN_CLEAR, &CMFCDemo2Dlg::OnBnClickedBtnClear)
 END_MESSAGE_MAP()
 
 
@@ -119,6 +122,11 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	m_combFunc.AddString("图像缩放");
 	m_combFunc.AddString("边缘算子");
 	m_combFunc.AddString("Sobel 边缘算子（水平方向)");
+	m_combFunc.AddString("Canny算子");
+
+	m_comboImageSegment.AddString("Robert算子");
+	m_comboImageSegment.AddString("Sobel算子");
+	m_comboImageSegment.AddString("Canny算子");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -280,7 +288,6 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc()
 		CTMatrix< RGB_TRIPLE > Image_zoom = CImageProcess::Image_zoom(m_image_org.Get_color_image(), w1, h1);
 		m_image_Obj.ImportFrom(Image_zoom);
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width()*w1, rectOrcBmp.Height()*h1));
-//		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(m_image_org.Get_image_width(), m_image_org.Get_image_height()));
 	}
 	else if (0 == str.Compare("边缘算子"))
 	{
@@ -294,4 +301,69 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc()
 		m_image_Obj.ImportFrom(Sobel_edge_horizontal);
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	}
+	else if (0 == str.Compare("Canny算子"))
+	{
+		CTMatrix< BYTE > Canny_edge_operator = CImageProcess::Canny_edge_operator(m_image_org.Get_gray_image());
+		m_image_Obj.ImportFrom(Canny_edge_operator);
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+}
+
+
+void CMFCDemo2Dlg::OnCbnSelchangeComboImageSegment()
+{
+	int nIndex = m_comboImageSegment.GetCurSel();
+
+	CString str;
+
+	CPoint ptLeftTop;
+	CRect rectOrcBmp;
+	GetDlgItem(IDC_STATIC_OBJ_BMP)->GetClientRect(&rectOrcBmp);
+	ptLeftTop.x = rectOrcBmp.left;
+	ptLeftTop.y = rectOrcBmp.top;
+
+
+	m_comboImageSegment.GetLBText(nIndex, str);
+
+	if (0 == str.Compare("Robert算子"))
+	{
+		if (m_image_org.IsColorImage())
+		{
+			m_image_org.ColorToGray();
+			CTMatrix< BYTE > Robert_edge_operator = CImageProcess::Robert_edge_operator(m_image_org.Get_gray_image());
+			m_image_Obj.ImportFrom(Robert_edge_operator);
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+		}
+
+	}
+	else if (0 == str.Compare("Sobel算子"))
+	{
+		if (m_image_org.IsColorImage())
+		{
+			m_image_org.ColorToGray();
+			CTMatrix< BYTE > Sobel_edge_horizontal = CImageProcess::Sobel_edge_horizontal(m_image_org.Get_gray_image());
+			m_image_Obj.ImportFrom(Sobel_edge_horizontal);
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+		}
+	}
+	else if (0 == str.Compare("Canny算子"))
+	{
+		if (m_image_org.IsColorImage())
+		{
+			m_image_org.ColorToGray();
+
+//			m_image_org.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(m_image_Obj.Get_image_width(), m_image_Obj.Get_image_height()));
+			CTMatrix< BYTE > Canny_edge_operator = CImageProcess::Canny_edge_operator(m_image_org.Get_gray_image());
+			m_image_Obj.ImportFrom(Canny_edge_operator);
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+		}
+	}
+}
+
+
+void CMFCDemo2Dlg::OnBnClickedBtnClear()
+{
+	CRect rectObjWnd;
+	GetDlgItem(IDC_STATIC_OBJ_BMP)->GetClientRect(rectObjWnd);
+	GetDlgItem(IDC_STATIC_OBJ_BMP)->InvalidateRect(rectObjWnd);
 }

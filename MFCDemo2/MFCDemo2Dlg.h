@@ -42,5 +42,8 @@ public:
 	afx_msg void OnStnClickedStaticOrgBmp();
 	afx_msg void OnStnClickedStaticObjBmp();
 	CComboBox m_combFunc;
+	CComboBox m_comboImageSegment;
 	afx_msg void OnCbnSelchangeComboFunc();
+	afx_msg void OnCbnSelchangeComboImageSegment();
+	afx_msg void OnBnClickedBtnClear();
 };

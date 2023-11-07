@@ -322,3 +322,364 @@ CTMatrix< BYTE > CImageProcess::Sobel_edge_horizontal(const CTMatrix< BYTE >& gr
 	CTMatrix< BYTE > temp = Convolution_operation(gray_image, mask_one);
 	return Convolution_operation(temp, mask_two);
 }
+
+struct PixlNode // 记录Canny算子中双阈值法中第一次扫描不能处理点结构
+{
+	int h;
+	int w;
+	int gradvalue;
+	PixlNode* next;
+};
+
+// [ **************** ] ..................................................
+// [ 高斯滤波数组操作 ] ..................................................
+// [ **************** ] ..................................................
+void GausFilterOp(int height, int width, CTMatrix<BYTE>& matrix)
+{
+	CTMatrix<BYTE> tm = matrix;
+	int h = 0, w = 0;
+	int temp = 0;
+
+	for (h = 1; h < height - 1; h++)
+	{
+		for (w = 1; w < width - 1; w++)
+		{
+			temp = (tm[h - 1][w - 1] + 2 * tm[h - 1][w] + tm[h - 1][w + 1]
+				+ 2 * tm[h][w - 1] + 4 * tm[h][w] + 2 * tm[h][w + 1]
+				+ tm[h + 1][w - 1] + 2 * tm[h + 1][w] + tm[h + 1][w + 1]) / 12;
+
+			if (temp > 255)
+			{
+				temp = 255;
+			}
+			matrix[h][w] = (BYTE)temp;
+		}
+	}
+}
+
+// [ ************************************* ] .............................
+// [ 求Canny算子中处于高低阈值之间的像素点 ] .............................
+// [ ************************************* ] .............................
+void CannyPixlProc(struct PixlNode** ph, struct PixlNode** pt, CTMatrix<BYTE>& tm, int thi, int tlo, int& glcounter)
+{
+	struct PixlNode* p, * q;
+	int    h = 0, w = 0;
+	bool   flag1 = false, flag2 = false;
+
+	// 处理高低阈值之间的像素点
+	p = q = *ph;
+	while (q)
+	{
+		h = q->h;
+		w = q->w;
+
+		if (tm[h - 1][w - 1] > thi || tm[h - 1][w] > thi ||
+			tm[h - 1][w + 1] > thi || tm[h][w - 1] > thi ||
+			tm[h][w + 1] > thi || tm[h + 1][w - 1] > thi ||
+			tm[h + 1][w] > thi || tm[h + 1][w + 1] > thi)
+		{ // 如果邻接点是边缘点则此点也是
+			tm[h][w] = 255;
+			glcounter--;
+			flag1 = true;
+		}
+		else if (tm[h - 1][w - 1] < tlo && tm[h - 1][w] < tlo &&
+			tm[h - 1][w + 1] < tlo && tm[h][w - 1] < tlo &&
+			tm[h][w + 1] < tlo && tm[h + 1][w - 1] < tlo &&
+			tm[h + 1][w] < tlo && tm[h + 1][w + 1] < tlo)
+		{ // 邻接点都不是边缘点则此点也不是
+			tm[h][w] = 0;
+			glcounter--;
+			flag2 = true;
+		}
+		else
+		{ // 仍然不确定
+			p = q;
+			q = q->next;
+		}
+		if (flag1 == true || flag2 == true) // if0
+		{ // 处理一个则从链表删除一个
+			flag1 = flag2 = false;
+			if (q == *ph)
+			{ // 删除头部
+				*ph = (*ph)->next;
+				delete q;
+				p = q = *ph;
+			}
+			else if (q == *pt)
+			{ // 删除尾巴
+				*pt = p;
+				(*pt)->next = NULL;
+				delete q;
+				p = q = NULL;
+			}
+			else
+			{ // 删除中间
+				p->next = q->next;
+				delete q;
+				q = p->next;
+			}
+		} // end if0
+	}// end while 
+}
+
+// [ ************** ] ....................................................
+// [ Canny 边缘算子 ] ....................................................
+// [ ************** ] ....................................................
+CTMatrix< BYTE > CImageProcess::Canny_edge_operator(const CTMatrix< BYTE >& gray_image)
+{
+	CTMatrix<BYTE> temp_matrix, tm; // 灰度值数组
+	CTMatrix<BYTE> di;              // 对应梯度方向角
+	int temp, tparr[2];             // 临时变量
+	int his[256];                   // 灰度直方图
+	int width;                      // 图像宽度
+	int height;                     // 图像高度
+	int h = 0, w = 0;               // 数组下标 h：行 w：列
+	int i = 0;                      // 数组下标访问变量
+	int max = 0, min = 0;
+
+	// 得到欲加工图像信息 图像宽度 图像高度	
+	temp_matrix = tm = gray_image;
+	width = gray_image.Get_width();
+	height = gray_image.Get_height();
+
+	// 分下面几个步骤实现 Canny 算子
+	//
+	// step 1. 高斯滤波消除噪声
+	GausFilterOp(height, width, temp_matrix);
+
+	// step 2. Prewitt模板求梯度大小、梯度方向角
+	tm = di = temp_matrix;
+	for (h = 1; h < height - 1; h++)
+	{
+		for (w = 1; w < width - 1; w++)
+		{
+			// 垂直方向
+			tparr[0] = -tm[h - 1][w - 1] + tm[h - 1][w + 1]
+				- tm[h][w - 1] + tm[h][w + 1]
+				- tm[h + 1][w - 1] + tm[h + 1][w + 1];
+
+			// 水平方向
+			tparr[1] = -tm[h - 1][w - 1] - tm[h - 1][w] - tm[h - 1][w + 1]
+				+ tm[h + 1][w - 1] + tm[h + 1][w] + tm[h + 1][w + 1];
+
+			// a. 计算梯度值
+			for (i = 0; i < 2; i++)
+			{
+				if (tparr[i] < 0)
+				{
+					tparr[i] = -tparr[i];
+				}
+				else if (tparr[i] > 255)
+				{
+					tparr[i] = 255;
+				}
+			}
+
+			temp_matrix[h][w] = max(abs(tparr[0]), abs(tparr[1]));
+
+			// b. 计算方向角
+			temp = (int)(atan((double)tparr[0] / (double)tparr[1]));
+
+			if (temp < 0)
+			{
+				temp += 180;
+			}
+
+			di[h][w] = (BYTE)(temp * 180 / 3.14);
+		}
+	}
+
+	// step 3. 将方向角分类 0-22.5、157.5-180 是0度， 22.5-67.5 是45度，67.5-112.5是90度，112.5-157.5是135度
+	for (h = 1; h < height - 1; h++)
+	{
+		for (w = 1; w < width - 1; w++)
+		{
+			temp = di[h][w];
+			if ((temp >= 0 && temp <= 22.5) || (temp >= 157.5 && temp <= 180))
+			{
+				di[h][w] = 0;
+			}
+			else if (temp > 22.5 && temp <= 67.5)
+			{
+				di[h][w] = 45;
+			}
+			else if (temp > 67.5 && temp <= 112.5)
+			{
+				di[h][w] = 90;
+			}
+			else if (temp > 112.5 && temp <= 157.5)
+			{
+				di[h][w] = 135;
+			}
+			else
+			{
+				di[h][w] = -1;
+			}
+		}
+	}
+
+	// step 4. 非最大抑制 
+	for (h = 1; h < height - 1; h++)
+	{
+		for (w = 1; w < width - 1; w++)
+		{
+			bool flag = true;
+
+			if (di[h - 1][w] == di[h][w] && temp_matrix[h][w] < temp_matrix[h - 1][w]) flag = false; // 上				
+			if (di[h][w - 1] == di[h][w] && temp_matrix[h][w] < temp_matrix[h][w - 1]) flag = false; // 前
+			if (di[h][w + 1] == di[h][w] && temp_matrix[h][w] < temp_matrix[h][w + 1]) flag = false; // 后				
+			if (di[h + 1][w] == di[h][w] && temp_matrix[h][w] < temp_matrix[h - 1][w]) flag = false; // 下
+			if (di[h - 1][w - 1] == di[h][w] && temp_matrix[h][w] < temp_matrix[h - 1][w - 1]) flag = false; // 左上
+			if (di[h - 1][w + 1] == di[h][w] && temp_matrix[h][w] < temp_matrix[h - 1][w + 1]) flag = false; // 右上
+			if (di[h + 1][w - 1] == di[h][w] && temp_matrix[h][w] < temp_matrix[h + 1][w - 1]) flag = false; // 左下
+			if (di[h + 1][w + 1] == di[h][w] && temp_matrix[h][w] < temp_matrix[h - 1][w + 1]) flag = false; // 右下			
+
+			if (flag == false)
+			{
+				temp_matrix[h][w] = 0;
+			}
+		}
+	}
+
+	// step 5. 双阈值法判断边缘点 
+	//
+	// step 5.1 选取阈值 tHigh tLow
+	//
+	int tHigh, tLow; // 用来寻找边缘点的阈值
+	// 直方图初始化 
+	for (i = 0; i < 256; i++)
+	{
+		his[i] = 0;
+	}
+
+	// 得到直方图 
+	for (h = 1; h < height - 1; h++)
+	{
+		for (w = 1; w < width - 1; w++)
+		{
+			his[temp_matrix[h][w]]++;
+		}
+	}
+
+	// 得到灰度值最大点
+	h = 255;
+	while (h--)
+	{
+		if (his[h] != 0)
+		{
+			max = h;
+			break;
+		}
+	}
+
+	// 得到灰度值最小点 
+	h = 0;
+	while (h++)
+	{
+		if (his[h] != 0)
+		{
+			min = h;
+			break;
+		}
+	}
+
+	// 得到双阈值 高阈值取 0.25 处、低阈值取高阈值的 0.4
+	tHigh = (int)(min + 0.25 * (max - min));
+	tLow = (int)(0.4 * tHigh);
+
+	// step 5.2 利用双阈值找边缘点
+	long int sum = 0;
+	struct PixlNode* pHead, * pTail;
+
+	pHead = pTail = NULL;
+	int glcounter = (height - 4) * (width - 4);
+
+	// step 5.2.1 首次处理 确定大多数点 记录不确定点
+	for (h = 2; h < height - 2; h++) // for1
+	{
+		for (w = 2; w < width - 2; w++) // for2
+		{
+
+			if (temp_matrix[h][w] >= tHigh)
+			{ // 大于高阈值肯定是边缘点
+				temp_matrix[h][w] = 255;
+				glcounter--;
+			}
+			else if (temp_matrix[h][w] < tLow)
+			{ // 小于低阈值肯定不是边缘点
+				temp_matrix[h][w] = 0;
+				glcounter--;
+			}
+			else // else1
+			{ // 在两者之间的通过判断邻接8像素点确定
+				if (temp_matrix[h - 1][w - 1] > tHigh || temp_matrix[h - 1][w] > tHigh ||
+					temp_matrix[h - 1][w + 1] > tHigh || temp_matrix[h][w - 1] > tHigh ||
+					temp_matrix[h][w + 1] > tHigh || temp_matrix[h + 1][w - 1] > tHigh ||
+					temp_matrix[h + 1][w] > tHigh || temp_matrix[h + 1][w + 1] > tHigh)
+				{ // 如果邻接点是边缘点则此点也是
+					temp_matrix[h][w] = 255;
+					glcounter--;
+				}
+				else if (temp_matrix[h - 1][w - 1] < tLow && temp_matrix[h - 1][w] < tLow &&
+					temp_matrix[h - 1][w + 1] < tLow && temp_matrix[h][w - 1] < tLow &&
+					temp_matrix[h][w + 1] < tLow && temp_matrix[h + 1][w - 1] < tLow &&
+					temp_matrix[h + 1][w] < tLow && temp_matrix[h + 1][w + 1] < tLow)
+				{ // 邻接点都不是边缘点则此点也不是
+					temp_matrix[h][w] = 0;
+					glcounter--;
+				}
+				else // else2
+				{ // 如果边缘点的灰度值在高低阈值之间则记录下来
+					struct PixlNode* p = new struct PixlNode;
+					if (p) // if1
+					{
+						sum++;
+						p->h = h;
+						p->w = w;
+						p->gradvalue = temp_matrix[h][w];
+						p->next = NULL;
+						if (pHead == NULL)
+						{
+							pHead = pTail = p;
+						}
+						else
+						{
+							pTail->next = p;
+							pTail = p;
+						}
+					}
+				} // else2
+			} // else1 
+		} // for2
+	} // for1
+
+
+	// step 5.2.2 处理未确定点
+	int glcounterpre = 0;
+	while (glcounter != glcounterpre)
+	{
+		glcounterpre = glcounter;
+		CannyPixlProc(&pHead, &pTail, temp_matrix, tHigh, tLow, glcounter);
+	}
+
+	// 假设最终不能处理掉的像素认为是和边缘无关的 置为 0
+	struct PixlNode* q = pHead;
+	while (q)
+	{
+		h = q->h;
+		w = q->w;
+		temp_matrix[h][w] = 0;
+		q = q->next;
+	}
+
+	// 释放动态申请的内存
+	q = pHead;
+	while (q)
+	{
+		pHead = q->next;
+		delete q;
+		q = pHead;
+	}
+
+	return temp_matrix;
+}
