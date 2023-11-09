@@ -353,7 +353,6 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboImageSegment()
 		{
 			if (!m_image_org.IsGrayImage())
 			m_image_org.ColorToGray();
-//			m_image_org.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(m_image_Obj.Get_image_width(), m_image_Obj.Get_image_height()));
 			CTMatrix< BYTE > Canny_edge_operator = CImageProcess::Canny_edge_operator(m_image_org.Get_gray_image());
 			m_image_Obj.ImportFrom(Canny_edge_operator);
 			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
