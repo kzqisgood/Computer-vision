@@ -3,6 +3,8 @@
 #include "math.h"
 #include <stdlib.h>
 #include <cstdlib>
+#include <vector>
+#include <queue>
 
 CImageProcess::CImageProcess(void)
 {
@@ -682,4 +684,438 @@ CTMatrix< BYTE > CImageProcess::Canny_edge_operator(const CTMatrix< BYTE >& gray
 	}
 
 	return temp_matrix;
+}
+
+// [ **************** ] ..................................................
+// [ Prewitt 边缘算子 ] ..................................................
+// [ **************** ] ..................................................
+CTMatrix< BYTE > CImageProcess::Prewitt_edge_operator(const CTMatrix< BYTE >& gray_image)
+{
+	float mask_one[3][3] = { { -1,  0,  1 },
+								 { -1,  0,  1 },
+								 { -1,  0,  1 } };
+	float mask_two[3][3] = { { -1, -1, -1 },
+								 { 0,   0,  0 },
+								 { 1,   1,  1 } };
+
+	CTMatrix< float > mask(3, 3);
+
+	mask.ImportFrom(mask_one);
+	CTMatrix< BYTE > horizontal = Convolution_operation(gray_image, mask);
+
+	mask.ImportFrom(mask_two);
+	CTMatrix< BYTE > vertical = Convolution_operation(gray_image, mask);
+
+	CTMatrix< BYTE > edge_image = gray_image;
+
+	for (int row = 0; row < gray_image.Get_height(); row++)
+		for (int column = 0; column < gray_image.Get_width(); column++)
+		{
+			edge_image[row][column] = max(horizontal[row][column], vertical[row][column]);
+		}
+
+	return edge_image;
+}
+
+// [ ******** ] ..........................................................
+// [ 区域生长 ] ..........................................................
+// [ ******** ] ..........................................................
+CTMatrix< BlackWhite > CImageProcess::Region_growing(const CTMatrix< BYTE >& gray_image, BYTE original_seed, BYTE range_of_similarity)
+{
+	long image_height = gray_image.Get_height();
+	long image_width = gray_image.Get_width();
+
+	CTMatrix< BlackWhite > growing_result(image_height, image_width);
+
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+		{
+			if (gray_image[row][column] >= original_seed)
+				growing_result[row][column] = White;
+			else
+				growing_result[row][column] = Black;
+		}
+
+	bool is_end = false;
+
+	while (is_end == false)
+	{
+		is_end = true;
+
+		for (int row = 0; row < image_height; row++)
+			for (int column = 0; column < image_width; column++)
+				if (growing_result[row][column] == White)
+				{
+					for (int sub_row = -1; sub_row <= 1; sub_row++)
+						for (int sub_column = -1; sub_column <= 1; sub_column++)
+						{
+							int new_row = row + sub_row;
+							int new_column = column + sub_column;
+
+							if (gray_image.Is_point_valid(CImagePoint(new_row, new_column)))
+								if (growing_result[new_row][new_column] == Black)
+									if (abs(gray_image[row][column] - gray_image[new_row][new_column] < range_of_similarity))
+									{
+										is_end = false;
+										growing_result[new_row][new_column] = White;
+									}
+						}
+				}
+	}
+
+	return growing_result;
+}
+
+// [ ********** ] ........................................................
+// [ 分水岭算法 ] ........................................................
+// [ ********** ] ........................................................
+CTMatrix< int > CImageProcess::Watershed(const CTMatrix< BYTE >& OriginalImage, BYTE seed_threshold)
+{
+	using namespace std;
+
+	int image_height = OriginalImage.Get_height();
+	int image_width = OriginalImage.Get_width();
+
+	CTMatrix< char > SeedImage(image_height, image_width);
+
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+			SeedImage[row][column] = 0;
+	//设置初始水位，淹没低于阈值的像素点，形成积水坑。
+	unsigned char uszThre = seed_threshold;
+	for (int i = 2; i < image_height - 2; i++)
+		for (int k = 3; k < image_width - 3; k++)
+		{
+			BYTE uszTem = OriginalImage[i][k];
+			if (uszTem < uszThre)
+			{
+				SeedImage[i][k] = 1;
+			}
+		}
+	//用于标记当前像素点属用哪一个积水坑，0：不属于任何积水坑 1-n是积水坑编号
+	CTMatrix< int > LabelImage(image_height, image_width);//分类
+
+	for (int i = 0; i < image_height; i++)
+	{
+		for (int j = 0; j < image_width; j++)
+			LabelImage[i][j] = 0;
+	}
+
+	int Num = 0;//积水坑编号
+	int i, j;
+	//记录各积水坑不同灰度像素值[0-255]像素点[n]的个数
+	vector<int*> SeedCounts;//队列的长度
+	queue<POINT> quetem;//像素点(队列中)结构临时变量
+	//记录各积水坑不同灰度像素值[0-255]像素点的队列
+	vector<queue<POINT>*> vque;//数组里头挂数组 颜色
+
+	int* array;
+	queue<POINT>* pque;
+	POINT temp;
+
+	int m, n, k = 0;
+	BOOL up, down, right, left, upleft, upright, downleft, downright;//8 directions...
+
+	for (i = 0; i < image_height; i++)
+	{
+		for (j = 0; j < image_width; j++)
+		{
+			if (SeedImage[i][j] == 1)//第一个水坑
+			{
+				Num++;//当前积水坑编号
+
+				array = new int[256];
+				ZeroMemory(array, 256 * sizeof(int));
+
+				SeedCounts.push_back(array);//当前积水坑统计信息的初始化
+
+				pque = new queue<POINT>[256];
+
+				vque.push_back(pque);//当前积水坑的队列节点初始化
+
+				temp.x = i;
+				temp.y = j;
+				quetem.push(temp);
+
+				LabelImage[i][j] = Num;
+				SeedImage[i][j] = 127;
+
+				while (!quetem.empty())
+				{
+					up = down = right = left = FALSE;
+					upleft = upright = downleft = downright = FALSE;
+
+					temp = quetem.front();
+					m = temp.x;
+					n = temp.y;
+					quetem.pop();//弹出队列
+
+					if (m > 0)
+					{
+						if (SeedImage[m - 1][n] == 1)//当前节点的上边，第一个坐标指垂直方向
+						{
+							temp.x = m - 1;
+							temp.y = n;
+							quetem.push(temp);//入队列
+
+							LabelImage[m - 1][n] = Num;//标记为哪一个坑
+							SeedImage[m - 1][n] = 127;//标记被使用避免死循环
+						}
+						else
+						{
+							up = TRUE;
+						}
+					}
+					if (m > 0 && n > 0)
+					{
+						if (SeedImage[m - 1][n - 1] == 1)
+						{
+							temp.x = m - 1;
+							temp.y = n - 1;
+							quetem.push(temp);
+
+							LabelImage[m - 1][n - 1] = Num;
+							SeedImage[m - 1][n - 1] = 127;
+						}
+						else
+						{
+							upleft = TRUE;
+						}
+					}
+
+					if (m < image_height - 1)
+					{
+						if (SeedImage[m + 1][n] == 1)
+						{
+							temp.x = m + 1;
+							temp.y = n;
+							quetem.push(temp);
+
+							LabelImage[m + 1][n] = Num;
+							SeedImage[m + 1][n] = 127;
+						}
+						else
+						{
+							down = TRUE;
+						}
+					}
+					if (m < (image_height - 1) && n < (image_width - 1))
+					{
+						if (SeedImage[m + 1][n + 1] == 1)
+						{
+							temp.x = m + 1;
+							temp.y = n + 1;
+							quetem.push(temp);
+
+							LabelImage[m + 1][n + 1] = Num;
+							SeedImage[m + 1][n + 1] = 127;
+						}
+						else
+						{
+							downright = TRUE;
+						}
+					}
+
+					if (n < image_width - 1)
+					{
+						if (SeedImage[m][n + 1] == 1)
+						{
+							temp.x = m;
+							temp.y = n + 1;
+							quetem.push(temp);
+
+							LabelImage[m][n + 1] = Num;
+							SeedImage[m][n + 1] = 127;
+						}
+						else
+						{
+							right = TRUE;
+						}
+					}
+					if (m > 0 && n < (image_width - 1))
+					{
+						if (SeedImage[m - 1][n + 1] == 1)
+						{
+							temp.x = m - 1;
+							temp.y = n + 1;
+							quetem.push(temp);
+
+							LabelImage[m - 1][n + 1] = Num;
+							SeedImage[m - 1][n + 1] = 127;
+						}
+						else
+						{
+							upright = TRUE;
+						}
+					}
+
+					if (n > 0)
+					{
+						if (SeedImage[m][n - 1] == 1)
+						{
+							temp.x = m;
+							temp.y = n - 1;
+							quetem.push(temp);
+
+							LabelImage[m][n - 1] = Num;
+							SeedImage[m][n - 1] = 127;
+						}
+						else
+						{
+							left = TRUE;
+						}
+					}
+					if (m < (image_height - 1) && n>0)
+					{
+						if (SeedImage[m + 1][n - 1] == 1)
+						{
+							temp.x = m + 1;
+							temp.y = n - 1;
+							quetem.push(temp);
+
+							LabelImage[m + 1][n - 1] = Num;
+							SeedImage[m + 1][n - 1] = 127;
+						}
+						else
+						{
+							downleft = TRUE;
+						}
+					}
+
+					if (up || down || right || left ||
+						upleft || downleft || upright || downright)//该点不是积水坑边上的点
+					{
+						temp.x = m;
+						temp.y = n;
+						vque[Num - 1][OriginalImage[m][n]].push(temp);//当前积水坑的像素值
+						SeedCounts[Num - 1][OriginalImage[m][n]]++;//当前积水坑的灰度值像素
+					}
+				}
+			}
+		}
+	}
+
+	bool actives;
+	int WaterLevel;
+
+	for (WaterLevel = 0; WaterLevel < 180; WaterLevel++)
+	{
+		actives = true;
+		while (actives)
+		{
+			actives = false;
+
+			for (i = 0; i < Num; i++)
+			{
+				if (!vque[i][WaterLevel].empty())
+				{
+					actives = true;
+					while (SeedCounts[i][WaterLevel] > 0)
+					{
+						SeedCounts[i][WaterLevel]--;
+						temp = vque[i][WaterLevel].front();
+
+						vque[i][WaterLevel].pop();
+						m = temp.x;
+						n = temp.y;
+						if (m > 0)
+						{
+							if (!LabelImage[m - 1][n])
+							{
+								temp.x = m - 1;
+								temp.y = n;
+								LabelImage[m - 1][n] = i + 1;
+
+								if (OriginalImage[m - 1][n] <= WaterLevel)
+								{
+									vque[i][WaterLevel].push(temp);
+								}
+								else
+								{
+									vque[i][OriginalImage[m - 1][n]].push(temp);
+									SeedCounts[i][OriginalImage[m - 1][n]]++;
+								}
+							}
+						}
+
+						if (m < image_height - 1)
+						{
+							if (!LabelImage[m + 1][n])
+							{
+								temp.x = m + 1;
+								temp.y = n;
+								LabelImage[m + 1][n] = i + 1;
+
+								if (OriginalImage[m + 1][n] <= WaterLevel)
+								{
+									vque[i][WaterLevel].push(temp);
+								}
+								else
+								{
+									vque[i][OriginalImage[m + 1][n]].push(temp);
+									SeedCounts[i][OriginalImage[m + 1][n]]++;
+								}
+							}
+						}
+
+						if (n < image_width - 1)
+						{
+							if (!LabelImage[m][n + 1])
+							{
+								temp.x = m;
+								temp.y = n + 1;
+								LabelImage[m][n + 1] = i + 1;
+
+								if (OriginalImage[m][n + 1] <= WaterLevel)
+								{
+									vque[i][WaterLevel].push(temp);
+								}
+								else
+								{
+									vque[i][OriginalImage[m][n + 1]].push(temp);
+									SeedCounts[i][OriginalImage[m][n + 1]]++;
+								}
+							}
+						}
+
+						if (n > 0)
+						{
+							if (!LabelImage[m][n - 1])
+							{
+								temp.x = m;
+								temp.y = n - 1;
+								LabelImage[m][n - 1] = i + 1;
+
+								if (OriginalImage[m][n - 1] <= WaterLevel)
+								{
+									vque[i][WaterLevel].push(temp);
+								}
+								else
+								{
+									vque[i][OriginalImage[m][n - 1]].push(temp);
+									SeedCounts[i][OriginalImage[m][n - 1]]++;
+								}
+							}
+						}
+					}
+					SeedCounts[i][WaterLevel] = vque[i][WaterLevel].size();
+				}
+			}
+		}
+	}
+
+	while (!vque.empty())
+	{
+		pque = vque.back();
+		delete[] pque;
+		vque.pop_back();
+	}
+	while (!SeedCounts.empty())
+	{
+		array = SeedCounts.back();
+		delete[] array;
+		SeedCounts.pop_back();
+	}
+
+	return LabelImage;
 }

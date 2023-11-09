@@ -127,6 +127,9 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	m_comboImageSegment.AddString("Robert算子");
 	m_comboImageSegment.AddString("Sobel算子");
 	m_comboImageSegment.AddString("Canny算子");
+	m_comboImageSegment.AddString("Prewitt算子");
+	m_comboImageSegment.AddString("区域生长");
+	m_comboImageSegment.AddString("分水岭算法");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -347,7 +350,7 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboImageSegment()
 			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 		}
 	}
-	else if (0 == str.Compare("Canny算子"))
+	else if (0 == str.Compare("Canny算子"))//计算量大
 	{
 		if (m_image_org.IsColorImage() || m_image_org.IsGrayImage())
 		{
@@ -355,6 +358,57 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboImageSegment()
 			m_image_org.ColorToGray();
 			CTMatrix< BYTE > Canny_edge_operator = CImageProcess::Canny_edge_operator(m_image_org.Get_gray_image());
 			m_image_Obj.ImportFrom(Canny_edge_operator);
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+		}
+	}
+	else if (0 == str.Compare("Prewitt算子"))
+	{
+		if (m_image_org.IsColorImage() || m_image_org.IsGrayImage())
+		{
+			if (!m_image_org.IsGrayImage())
+				m_image_org.ColorToGray();
+			CTMatrix< BYTE > Prewitt_edge_operator = CImageProcess::Prewitt_edge_operator(m_image_org.Get_gray_image());
+			m_image_Obj.ImportFrom(Prewitt_edge_operator);
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+		}
+	}
+	else if (0 == str.Compare("区域生长"))
+	{
+		if (m_image_org.IsColorImage() || m_image_org.IsGrayImage())
+		{
+			if (!m_image_org.IsGrayImage())
+				m_image_org.ColorToGray();
+			CTMatrix< BlackWhite > Region_growing =CImageProcess::Region_growing(m_image_org.Get_gray_image(),245, 6);
+			m_image_Obj.ImportFrom(Region_growing);
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+		}
+	}
+	else if (0 == str.Compare("分水岭算法"))
+	{
+		if (m_image_org.IsColorImage() || m_image_org.IsGrayImage())
+		{
+			if (!m_image_org.IsGrayImage())
+				m_image_org.ColorToGray();
+			CTMatrix< int > Watershed = CImageProcess::Watershed(m_image_org.Get_gray_image(), 52);
+			int image_height = m_image_org.Get_gray_image().Get_height();
+			int image_width = m_image_org.Get_gray_image().Get_width();
+
+			CTMatrix< RGB_TRIPLE > display_image(image_height, image_width);
+
+			for (int row = 0; row < image_height; row++)
+				for (int column = 0; column < image_width; column++)
+					if (Watershed[row][column] != 0)
+					{
+						display_image[row][column] = RGB_TRIPLE(255, 0, 0);
+					}
+					else
+					{
+						display_image[row][column].m_Blue = m_image_org.Get_gray_image()[row][column];
+						display_image[row][column].m_Green = m_image_org.Get_gray_image()[row][column];
+						display_image[row][column].m_Red = m_image_org.Get_gray_image()[row][column];
+					}
+
+			m_image_Obj.ImportFrom(display_image);
 			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 		}
 	}
