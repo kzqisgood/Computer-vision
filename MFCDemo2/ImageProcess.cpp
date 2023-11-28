@@ -998,24 +998,24 @@ CTMatrix< int > CImageProcess::Watershed(const CTMatrix< BYTE >& OriginalImage, 
 	bool actives;
 	int WaterLevel;
 
-	for (WaterLevel = 0; WaterLevel < 180; WaterLevel++)
+	for (WaterLevel = 0; WaterLevel < 180; WaterLevel++) //涨水到180
 	{
-		actives = true;
+		actives = true;//控制所有的水都处理一遍
 		while (actives)
 		{
 			actives = false;
 
-			for (i = 0; i < Num; i++)
+			for (i = 0; i < Num; i++)//积水坑下标
 			{
-				if (!vque[i][WaterLevel].empty())
+				if (!vque[i][WaterLevel].empty())//查看该值是否为空，是否继续迭代
 				{
 					actives = true;
 					while (SeedCounts[i][WaterLevel] > 0)
 					{
 						SeedCounts[i][WaterLevel]--;
-						temp = vque[i][WaterLevel].front();
+						temp = vque[i][WaterLevel].front();//拿到节点
 
-						vque[i][WaterLevel].pop();
+						vque[i][WaterLevel].pop();//弹出节点
 						m = temp.x;
 						n = temp.y;
 						if (m > 0)
@@ -1024,13 +1024,13 @@ CTMatrix< int > CImageProcess::Watershed(const CTMatrix< BYTE >& OriginalImage, 
 							{
 								temp.x = m - 1;
 								temp.y = n;
-								LabelImage[m - 1][n] = i + 1;
+								LabelImage[m - 1][n] = i + 1;//记录当前的坑
 
 								if (OriginalImage[m - 1][n] <= WaterLevel)
 								{
 									vque[i][WaterLevel].push(temp);
 								}
-								else
+								else//水过来了，该点虽然很高但也算该坑。p115
 								{
 									vque[i][OriginalImage[m - 1][n]].push(temp);
 									SeedCounts[i][OriginalImage[m - 1][n]]++;
@@ -1104,7 +1104,7 @@ CTMatrix< int > CImageProcess::Watershed(const CTMatrix< BYTE >& OriginalImage, 
 		}
 	}
 
-	while (!vque.empty())
+	while (!vque.empty())//释放所有的点
 	{
 		pque = vque.back();
 		delete[] pque;
@@ -1118,4 +1118,177 @@ CTMatrix< int > CImageProcess::Watershed(const CTMatrix< BYTE >& OriginalImage, 
 	}
 
 	return LabelImage;
+}
+
+double Distance_of_location_and_color(CImagePoint pixel_1, RGB_TRIPLE color_1,
+	CImagePoint pixel_2, RGB_TRIPLE color_2,
+	long image_height, long image_width)
+{	//像素点一
+	double first_1 = double(pixel_1.m_row) / double(image_height);
+	double second_1 = double(pixel_1.m_column) / double(image_width);
+	double third_1 = double(color_1.m_Red) / 255.0;	//红色通道归一到0-1区间
+	double fourth_1 = double(color_1.m_Green) / 255.0;
+	double fifth_1 = double(color_1.m_Blue) / 255.0;
+	//像素点二
+	double first_2 = double(pixel_2.m_row) / double(image_height);
+	double second_2 = double(pixel_2.m_column) / double(image_width);
+	double third_2 = double(color_2.m_Red) / 255.0;
+	double fourth_2 = double(color_2.m_Green) / 255.0;
+	double fifth_2 = double(color_2.m_Blue) / 255.0;
+
+	return sqrt((first_1 - first_2) * (first_1 - first_2)
+		+ (second_1 - second_2) * (second_1 - second_2)
+		+ (third_1 - third_2) * (third_1 - third_2)
+		+ (fourth_1 - fourth_2) * (fourth_1 - fourth_2)
+		+ (fifth_1 - fifth_2) * (fifth_1 - fifth_2));//距离
+}
+
+int Update_index_into_clusters(CImagePoint current_pixel, RGB_TRIPLE current_color,
+	CTArray< CImagePoint> centers_of_pixel, CTArray< RGB_TRIPLE > centers_of_color,
+	long image_height, long image_width)//当前的像素点，颜色，中心点
+{
+	long dimension = centers_of_pixel.GetDimension();//计算聚类中心点的个数
+
+	CTArray< double > array_of_distances(dimension);
+
+	double current_distance;
+	int current_index;
+
+	for (int index = 0; index < dimension; index++)
+	{
+		array_of_distances[index] = Distance_of_location_and_color(current_pixel, current_color,
+			centers_of_pixel[index], centers_of_color[index],
+			image_height, image_width);//算中心点的距离
+		if (index == 0)//从零开始排序
+		{
+			current_distance = array_of_distances[index];
+			current_index = index;
+		}
+		else//比较下一个距离
+		{
+			if (array_of_distances[index] < current_distance)
+			{
+				current_distance = array_of_distances[index];
+				current_index = index;
+			}
+		}
+	}
+
+	return current_index;
+}
+
+void Update_centers_of_clusters(const CTMatrix< RGB_TRIPLE >& color_image, const CTMatrix< int >& cluster_result,
+	int number_of_clusters,
+	CTArray< CImagePoint >& centers_of_pixel, CTArray< RGB_TRIPLE >& centers_of_color)
+{
+	long image_height = color_image.Get_height();
+	long image_width = color_image.Get_width();
+
+	CTArray< int > scale_of_clusters(number_of_clusters);
+	CTMatrix< double > sum_of_clusters(number_of_clusters, 5);
+
+	for (int index = 0; index < number_of_clusters; index++)
+	{
+		scale_of_clusters[index] = 0;
+
+		for (int sub_index = 0; sub_index < 5; sub_index++)
+		{
+			sum_of_clusters[index][sub_index] = 0;
+		}
+	}
+
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+		{
+			int current_index = cluster_result[row][column];
+
+			scale_of_clusters[current_index]++;
+			sum_of_clusters[current_index][0] += row;
+			sum_of_clusters[current_index][1] += column;
+			sum_of_clusters[current_index][2] += color_image[row][column].m_Red;
+			sum_of_clusters[current_index][3] += color_image[row][column].m_Green;
+			sum_of_clusters[current_index][4] += color_image[row][column].m_Blue;
+		}
+
+	for (int index = 0; index < number_of_clusters; index++)
+		if (scale_of_clusters[index] != 0)
+		{
+			centers_of_pixel[index].m_row = long(sum_of_clusters[index][0] / scale_of_clusters[index]);
+			centers_of_pixel[index].m_column = long(sum_of_clusters[index][1] / scale_of_clusters[index]);
+			centers_of_color[index].m_Red = BYTE(sum_of_clusters[index][2] / scale_of_clusters[index]);
+			centers_of_color[index].m_Green = BYTE(sum_of_clusters[index][3] / scale_of_clusters[index]);
+			centers_of_color[index].m_Blue = BYTE(sum_of_clusters[index][4] / scale_of_clusters[index]);
+		}
+
+	return;
+}
+
+bool Are_centers_same(const CTArray< CImagePoint>& centers_of_pixel, const CTArray< RGB_TRIPLE >& centers_of_color,
+	const CTArray< CImagePoint>& copies_of_pixel, const CTArray< RGB_TRIPLE >& copies_of_color)
+{
+	bool is_same = true;
+
+	long dimension = centers_of_pixel.GetDimension();
+
+	for (int index = 0; index < dimension; index++)
+	{
+		if (centers_of_pixel[index] != copies_of_pixel[index]
+			|| centers_of_color[index].m_Red != copies_of_color[index].m_Red
+			|| centers_of_color[index].m_Green != copies_of_color[index].m_Green
+			|| centers_of_color[index].m_Blue != copies_of_color[index].m_Blue)
+		{
+			is_same = false;
+			break;
+		}
+	}
+
+	return is_same;
+}
+
+// [ ********** ] ........................................................
+// [ K 均值聚类 ] ........................................................
+// [ ********** ] ........................................................
+CTMatrix< int > CImageProcess::K_means_clustering(const CTMatrix< RGB_TRIPLE >& color_image, int number_of_clusters)
+{
+	long image_height = color_image.Get_height();
+	long image_width = color_image.Get_width();
+
+	CTMatrix< int > cluster_result(image_height, image_width);
+
+	CTArray< CImagePoint> centers_of_pixel(number_of_clusters);
+	CTArray< RGB_TRIPLE > centers_of_color(number_of_clusters);
+
+	for (int index = 0; index < number_of_clusters; index++)
+	{
+		int row = image_height * (index + 1) / (number_of_clusters + 1);
+		int column = image_width * (index + 1) / (number_of_clusters + 1);
+
+		centers_of_pixel[index] = CImagePoint(row, column);
+		centers_of_color[index] = color_image[row][column];
+	}
+
+	CTArray< CImagePoint> copies_of_pixel;
+	CTArray< RGB_TRIPLE > copies_of_color;
+
+	long iteration = 0;
+
+	do
+	{
+		iteration++;
+
+		copies_of_pixel = centers_of_pixel;
+		copies_of_color = centers_of_color;
+
+		for (int row = 0; row < image_height; row++)
+			for (int column = 0; column < image_width; column++)
+			{
+				cluster_result[row][column] = Update_index_into_clusters(CImagePoint(row, column), color_image[row][column],
+					centers_of_pixel, centers_of_color, image_height, image_width);
+			}
+
+		Update_centers_of_clusters(color_image, cluster_result, number_of_clusters, centers_of_pixel, centers_of_color);
+
+	} while (!Are_centers_same(centers_of_pixel, centers_of_color, copies_of_pixel, copies_of_color) && iteration < 1000);
+
+	return cluster_result;
 }
