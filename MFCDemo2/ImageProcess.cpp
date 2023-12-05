@@ -1292,3 +1292,69 @@ CTMatrix< int > CImageProcess::K_means_clustering(const CTMatrix< RGB_TRIPLE >& 
 
 	return cluster_result;
 }
+
+// [ ******** ] ..........................................................
+// [ √∞≈›≈≈–Ú ] ..........................................................
+// [ ******** ] ..........................................................
+CTArray< BYTE > CImageProcess::Sort_with_bubbling(CTArray< BYTE > array_of_elements)
+{
+	long dimension = array_of_elements.GetDimension();
+
+	for (int index = 0; index < dimension; index++)
+	{
+		for (int sub_index = dimension - 1; sub_index > index; sub_index--)
+		{
+			if (array_of_elements[index] < array_of_elements[sub_index])
+			{
+				BYTE temp = array_of_elements[index];
+				array_of_elements[index] = array_of_elements[sub_index];
+				array_of_elements[sub_index] = temp;
+			}
+		}
+	}
+
+	return array_of_elements;
+}
+
+// [ ******** ] ..............................................................
+// [ ÷–÷µ¬À≤® ] ..............................................................
+// [ ******** ] ..............................................................
+CTMatrix< BYTE > CImageProcess::Median_filter(const CTMatrix< BYTE >& gray_image, long delta)
+{
+	long image_height = gray_image.Get_height();
+	long image_width = gray_image.Get_width();
+
+	CTMatrix< BYTE > filter_result(image_height, image_width);
+
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+		{
+			long number = 0;
+
+			for (int sub_row = -delta; sub_row <= delta; sub_row++)
+				for (int sub_col = -delta; sub_col <= delta; sub_col++)
+					if (gray_image.Is_point_valid(CImagePoint(row + sub_row, column + sub_col)))
+					{
+						number++;
+					}
+
+			CTArray< BYTE > array_of_elements(number);
+
+			int index = -1;
+
+			for (int sub_row = -delta; sub_row <= delta; sub_row++)
+				for (int sub_col = -delta; sub_col <= delta; sub_col++)
+					if (gray_image.Is_point_valid(CImagePoint(row + sub_row, column + sub_col)))
+					{
+						array_of_elements[++index] = gray_image[row + sub_row][column + sub_col];
+					}
+
+			ASSERT(index == array_of_elements.GetUpperBound());
+
+			array_of_elements = Sort_with_bubbling(array_of_elements);
+
+			filter_result[row][column] = array_of_elements[array_of_elements.GetDimension() / 2];
+		}
+
+	return filter_result;
+}

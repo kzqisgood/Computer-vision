@@ -33,6 +33,8 @@ public:
 	static CTMatrix< BlackWhite > CImageProcess::Region_growing(const CTMatrix< BYTE >& gray_image, BYTE original_seed, BYTE range_of_similarity);
 	static CTMatrix< int > CImageProcess::Watershed(const CTMatrix< BYTE >& OriginalImage, BYTE seed_threshold);
 	static CTMatrix< int > CImageProcess::K_means_clustering(const CTMatrix< RGB_TRIPLE >& color_image, int number_of_clusters);
+	static CTMatrix< BYTE > CImageProcess::Median_filter(const CTMatrix< BYTE >& gray_image, long delta);
+	static CTArray< BYTE > CImageProcess::Sort_with_bubbling(CTArray< BYTE > array_of_elements);
 };
 
 #endif//_MFCDEMO2_IMAGEPROCESS_H_

@@ -46,4 +46,6 @@ public:
 	afx_msg void OnCbnSelchangeComboFunc();
 	afx_msg void OnCbnSelchangeComboImageSegment();
 	afx_msg void OnBnClickedBtnClear();
+	CComboBox m_smooth_sharp;
+	afx_msg void OnCbnSelchangeComboFunc2();
 };
