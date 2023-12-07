@@ -135,6 +135,8 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	m_comboImageSegment.AddString("K 均值聚类");
 
 	m_smooth_sharp.AddString("中值滤波");
+	m_smooth_sharp.AddString("高通滤波器");
+	m_smooth_sharp.AddString("低通滤波器");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -476,6 +478,56 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc2()
 	{
 		CTMatrix< BYTE > filter_image = CImageProcess::Median_filter(m_image_org.Get_gray_image(), 3);
 		m_image_Obj.ImportFrom(filter_image);
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("低通滤波器"))
+	{
+		long new_height, new_width;
+		CTArray< complex > array_of_complex = CImageProcess::Image_to_complex(m_image_org.Get_gray_image(), new_height, new_width);
+
+		complex* pointer_of_complex = new complex[array_of_complex.GetDimension()];
+
+		array_of_complex.ExportTo(pointer_of_complex);
+		CImageProcess::forward_fft2d(pointer_of_complex, new_height, new_width); // [ 傅里叶正变换 ]
+		array_of_complex.ImportFrom(pointer_of_complex);
+
+		array_of_complex = CImageProcess::Low_pass_filter(array_of_complex); // [ 低通滤波（巴特沃斯滤波器） ]
+//		array_of_complex = CImageProcess::High_pass_filter(array_of_complex, new_height, new_width); // [ 高通滤波（巴特沃斯滤波器） ]
+		array_of_complex.ExportTo(pointer_of_complex);
+		CImageProcess::inverse_fft2d(pointer_of_complex, new_height, new_width); // [ 傅里叶反变换 ]
+		array_of_complex.ImportFrom(pointer_of_complex);
+
+		delete[] pointer_of_complex;
+
+		CTMatrix< BYTE > filter_image = CImageProcess::Complex_to_image(array_of_complex, new_height, new_width);
+
+		m_image_Obj.ImportFrom(filter_image);
+
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("高通滤波器"))
+	{
+		long new_height, new_width;
+		CTArray< complex > array_of_complex = CImageProcess::Image_to_complex(m_image_org.Get_gray_image(), new_height, new_width);
+
+		complex* pointer_of_complex = new complex[array_of_complex.GetDimension()];
+
+		array_of_complex.ExportTo(pointer_of_complex);
+		CImageProcess::forward_fft2d(pointer_of_complex, new_height, new_width); // [ 傅里叶正变换 ]
+		array_of_complex.ImportFrom(pointer_of_complex);
+
+//		array_of_complex = CImageProcess::Low_pass_filter(array_of_complex); // [ 低通滤波（巴特沃斯滤波器） ]
+		array_of_complex = CImageProcess::High_pass_filter(array_of_complex, new_height, new_width); // [ 高通滤波（巴特沃斯滤波器） ]
+		array_of_complex.ExportTo(pointer_of_complex);
+		CImageProcess::inverse_fft2d(pointer_of_complex, new_height, new_width); // [ 傅里叶反变换 ]
+		array_of_complex.ImportFrom(pointer_of_complex);
+
+		delete[] pointer_of_complex;
+
+		CTMatrix< BYTE > filter_image = CImageProcess::Complex_to_image(array_of_complex, new_height, new_width);
+
+		m_image_Obj.ImportFrom(filter_image);
+
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	}
 }

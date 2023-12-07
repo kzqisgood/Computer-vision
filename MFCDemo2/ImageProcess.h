@@ -5,6 +5,8 @@
 #include "TArrayEx.h"
 #include "TMatrixEx.h"
 
+typedef struct { double m_re; double m_im; } complex;
+
 class CImageProcess
 {
 public:
@@ -35,6 +37,12 @@ public:
 	static CTMatrix< int > CImageProcess::K_means_clustering(const CTMatrix< RGB_TRIPLE >& color_image, int number_of_clusters);
 	static CTMatrix< BYTE > CImageProcess::Median_filter(const CTMatrix< BYTE >& gray_image, long delta);
 	static CTArray< BYTE > CImageProcess::Sort_with_bubbling(CTArray< BYTE > array_of_elements);
+	static CTArray< complex > CImageProcess::Low_pass_filter(CTArray< complex > original_signal);
+	static CTArray< complex > CImageProcess::High_pass_filter(CTArray< complex > original_signal, long image_height, long image_width);
+	static int CImageProcess::inverse_fft2d(complex* array, int rows, int cols);
+	static int CImageProcess::forward_fft2d(complex* array, int rows, int cols);
+	static CTArray< complex > CImageProcess::Image_to_complex(const CTMatrix< BYTE >& gray_image, long& new_height, long& new_width);
+	static CTMatrix< BYTE > CImageProcess::Complex_to_image(const CTArray< complex >& complex_array, long image_height, long image_width);
 };
 
 #endif//_MFCDEMO2_IMAGEPROCESS_H_
