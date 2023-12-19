@@ -1945,3 +1945,174 @@ CTMatrix< BYTE > CImageProcess::Median_filter(const CTMatrix< BYTE >& gray_image
 
 	return filter_result;
 }
+
+// [ ******************* ] ...............................................
+// [ 产生 1 维的高斯模板 ] ...............................................
+// [ ******************* ] ...............................................
+CTArray< float > CImageProcess::Produce_1D_Gaussian_mask(float delta)
+{
+	long radius = long(ceil(3 * delta)); // [ 模板半径 ]
+	long dimension = 2 * radius + 1;   // [ 数组维数 ]
+	float sum_of_Gaussian = 0;         // [ 高斯系数和 ]
+
+	CTArray< float > mask(dimension); // [ 模板数组 ]
+
+	for (int index = 0; index < dimension; index++) // [ 数组遍历 ]
+	{
+		float sum_of_square = float((index - radius) * (index - radius)); // [ 平方和 ]
+		mask[index] = exp(-(sum_of_square / (2 * delta * delta)));     // [ 计算高斯系数 ]
+		sum_of_Gaussian += mask[index];                                       // [ 累加高斯系数和 ]
+	}
+
+	ASSERT(sum_of_Gaussian > 0); // [ 校验高斯系数和 ]
+
+	for (int index = 0; index < dimension; index++) // [ 数组遍历 ]
+	{
+		mask[index] /= sum_of_Gaussian; // [ 归一化高斯系数 ]
+	}
+
+	return mask; // [ 返回模板图像 ]
+}
+
+// [ ****************************** ] ....................................
+// [ 使用 Gaussian 模板进行卷积操作 ] ....................................
+// [ ****************************** ] ....................................
+float CImageProcess::Convolution_with_Gaussian_mask(const CTArray< float >& gray_array, const CTArray< float >& mask, long current_index)
+{
+	float convolution = 0;                                                           // [ 卷积结果 ]
+
+	long mask_radius = mask.GetDimension() / 2;                                      // [ 模板半径 ]
+
+	for (int index = -mask_radius; index <= mask_radius; index++)                 // [ 模板行遍历 ]
+	{
+		long convoluted_index = current_index + index;                               // [ 卷积行位置 ]
+		if (!(gray_array.Is_index_valid(convoluted_index)))                     // [ 校验卷积行位置 ]
+		{
+			convoluted_index = current_index - index;                                // [ 寻找对称卷积位置 ]
+
+			if (!(gray_array.Is_index_valid(convoluted_index)))                 // [ 校验卷积行位置 ]
+			{
+				convoluted_index = current_index;                                    // [ 寻找对称卷积位置 ]
+			}
+		}
+
+		convolution += gray_array[convoluted_index] * mask[index + mask_radius]; // [ 累加卷积结果 ]
+	}
+
+	return convolution;                                                              // [ 返回卷积结果 ]
+}
+
+// [ ****************************************** ] ........................
+// [ 使用 Gaussian 模板进行卷积操作( 浮点数组 ) ] ........................
+// [ ****************************************** ] ........................
+CTArray< float > CImageProcess::Convolution_with_Gaussian_mask(const CTArray< float >& gray_array, const CTArray< float >& mask)
+{
+	long dimension = gray_array.GetDimension(); // [ 数组维数 ]
+
+	CTArray< float > convolution(dimension); // [ 卷积结果 ]
+
+	for (int index = 0; index < dimension; index++) // [ 数组遍历 ]
+	{
+		convolution[index] = Convolution_with_Gaussian_mask(gray_array, mask, index); // [ 使用 Gaussian 模板进行卷积操作( 浮点数组，已有模板 ) ]
+	}
+
+	return convolution; // [ 卷积结果 ]
+}
+
+// [ ****************************** ] ....................................
+// [ 使用 Gaussian 模板进行卷积操作 ] ....................................
+// [ ****************************** ] ....................................
+CTMatrix< float > CImageProcess::Convolution_with_Gaussian_mask(const CTMatrix< float >& gray_image, float delta)
+{
+	CTArray< float > mask = Produce_1D_Gaussian_mask(delta);                 // [ 产生 1 维的高斯模板 ]
+
+	long image_height = gray_image.Get_height();                               // [ 图像高度 ]
+	long image_width = gray_image.Get_width();                                // [ 图像宽度 ]
+
+	CTArray< float > row_buffer(image_width);                                // [ 行缓冲 ]
+	CTArray< float > column_buffer(image_height);                            // [ 列缓冲 ]
+
+	CTMatrix< float > row_convoluted = gray_image;                             // [ 卷积行 ]
+
+	for (int row = 0; row < image_height; row++)                             // [ 行遍历 ]
+	{
+		for (int column = 0; column < image_width; column++)                 // [ 列遍历 ]
+			row_buffer[column] = gray_image[row][column];                // [ 设置行缓冲 ]
+
+		row_buffer = Convolution_with_Gaussian_mask(row_buffer, mask);       // [ 使用 Gaussian 模板进行卷积操作( 浮点数组 ) ]
+
+		for (int column = 0; column < image_width; column++)                 // [ 列遍历 ]
+			row_convoluted[row][column] = row_buffer[column];            // [ 设置卷积行 ]
+	}
+
+	CTMatrix< float > column_convoluted = row_convoluted;                      // [ 卷积列 ]
+
+	for (int column = 0; column < image_width; column++)                     // [ 列遍历 ]
+	{
+		for (int row = 0; row < image_height; row++)                         // [ 行遍历 ]
+			column_buffer[row] = row_convoluted[row][column];            // [ 设置列缓冲 ]
+
+		column_buffer = Convolution_with_Gaussian_mask(column_buffer, mask); // [ 使用 Gaussian 模板进行卷积操作( 浮点数组 ) ]
+
+		for (int row = 0; row < image_height; row++)                         // [ 行遍历 ]
+			column_convoluted[row][column] = column_buffer[row];         // [ 设置卷积列 ]
+	}
+
+	return column_convoluted;                                                  // [ 返回卷积列 ]
+}
+
+// [ ****************************** ] ....................................
+// [ 使用 Gaussian 模板进行卷积操作 ] ....................................
+// [ ****************************** ] ....................................
+CTMatrix< BYTE > CImageProcess::Convolution_with_Gaussian_mask(const CTMatrix< BYTE >& gray_image, float delta)
+{
+	long image_height = gray_image.Get_height();
+	long image_width = gray_image.Get_width();
+
+	CTMatrix< float > original_image(image_height, image_width);
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+			original_image[row][column] = gray_image[row][column];
+
+	CTMatrix< float > result_image = Convolution_with_Gaussian_mask(original_image, delta);
+
+	CTMatrix< BYTE > gray_result(image_height, image_width);
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+			gray_result[row][column] = BYTE(result_image[row][column]);
+
+	return gray_result;
+}
+
+// [ ******** ] ..........................................................
+// [ 差值滤波 ] ..........................................................
+// [ ******** ] ..........................................................
+CTMatrix< BYTE > CImageProcess::Difference_filter(const CTMatrix< BYTE >& gray_image, long delta)
+{
+	long image_height = gray_image.Get_height();
+	long image_width = gray_image.Get_width();
+
+	CTMatrix< BYTE > filter_result(image_height, image_width);
+
+	for (int row = 0; row < image_height; row++)
+		for (int column = 0; column < image_width; column++)
+		{
+			long sum = 0;
+			long number = 0;
+
+			for (int sub_row = -delta; sub_row <= delta; sub_row++)
+				for (int sub_col = -delta; sub_col <= delta; sub_col++)
+					if (gray_image.Is_point_valid(CImagePoint(row + sub_row, column + sub_col)))
+					{
+						sum += gray_image[row + sub_row][column + sub_col];
+						number++;
+					}
+
+			long average = BYTE(sum / number);
+			long temp = 10 * (gray_image[row][column] - average);
+			temp = max(0, min(255, temp));
+			filter_result[row][column] = BYTE(temp);
+		}
+
+	return filter_result;
+}

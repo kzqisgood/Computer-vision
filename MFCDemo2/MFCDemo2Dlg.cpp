@@ -134,9 +134,11 @@ BOOL CMFCDemo2Dlg::OnInitDialog()
 	m_comboImageSegment.AddString("分水岭算法");
 	m_comboImageSegment.AddString("K 均值聚类");
 
+	m_smooth_sharp.AddString("高斯模板");
 	m_smooth_sharp.AddString("中值滤波");
 	m_smooth_sharp.AddString("高通滤波器");
 	m_smooth_sharp.AddString("低通滤波器");
+	m_smooth_sharp.AddString("差值滤波");
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -476,12 +478,16 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc2()
 
 	if (0 == str.Compare("中值滤波"))
 	{
+		if (!m_image_org.IsGrayImage())
+			m_image_org.ColorToGray();
 		CTMatrix< BYTE > filter_image = CImageProcess::Median_filter(m_image_org.Get_gray_image(), 3);
 		m_image_Obj.ImportFrom(filter_image);
 		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
 	}
 	else if (0 == str.Compare("低通滤波器"))
 	{
+		if (!m_image_org.IsGrayImage())
+			m_image_org.ColorToGray();
 		long new_height, new_width;
 		CTArray< complex > array_of_complex = CImageProcess::Image_to_complex(m_image_org.Get_gray_image(), new_height, new_width);
 
@@ -507,6 +513,8 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc2()
 	}
 	else if (0 == str.Compare("高通滤波器"))
 	{
+		if (!m_image_org.IsGrayImage())
+			m_image_org.ColorToGray();
 		long new_height, new_width;
 		CTArray< complex > array_of_complex = CImageProcess::Image_to_complex(m_image_org.Get_gray_image(), new_height, new_width);
 
@@ -525,6 +533,26 @@ void CMFCDemo2Dlg::OnCbnSelchangeComboFunc2()
 		delete[] pointer_of_complex;
 
 		CTMatrix< BYTE > filter_image = CImageProcess::Complex_to_image(array_of_complex, new_height, new_width);
+
+		m_image_Obj.ImportFrom(filter_image);
+
+		m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("高斯模板"))
+	{
+		if (!m_image_org.IsGrayImage())
+			m_image_org.ColorToGray();
+			CTMatrix< BYTE > filter_image = CImageProcess::Convolution_with_Gaussian_mask(m_image_org.Get_gray_image(), 3.0f);
+
+			m_image_Obj.ImportFrom(filter_image);
+
+			m_image_Obj.ShowImage(GetDlgItem(IDC_STATIC_OBJ_BMP)->GetDC(), ptLeftTop, CSize(rectOrcBmp.Width(), rectOrcBmp.Height()));
+	}
+	else if (0 == str.Compare("差值滤波"))
+	{
+		if (!m_image_org.IsGrayImage())
+			m_image_org.ColorToGray();
+		CTMatrix< BYTE > filter_image = CImageProcess::Difference_filter(m_image_org.Get_gray_image(), 2);
 
 		m_image_Obj.ImportFrom(filter_image);
 

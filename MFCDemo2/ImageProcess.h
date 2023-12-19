@@ -43,6 +43,12 @@ public:
 	static int CImageProcess::forward_fft2d(complex* array, int rows, int cols);
 	static CTArray< complex > CImageProcess::Image_to_complex(const CTMatrix< BYTE >& gray_image, long& new_height, long& new_width);
 	static CTMatrix< BYTE > CImageProcess::Complex_to_image(const CTArray< complex >& complex_array, long image_height, long image_width);
+	static CTArray< float > CImageProcess::Produce_1D_Gaussian_mask(float delta);
+	static float CImageProcess::Convolution_with_Gaussian_mask(const CTArray< float >& gray_array, const CTArray< float >& mask, long current_index);
+	static CTArray< float > CImageProcess::Convolution_with_Gaussian_mask(const CTArray< float >& gray_array, const CTArray< float >& mask);
+	static CTMatrix< float > CImageProcess::Convolution_with_Gaussian_mask(const CTMatrix< float >& gray_image, float delta);
+	static CTMatrix< BYTE > CImageProcess::Convolution_with_Gaussian_mask(const CTMatrix< BYTE >& gray_image, float delta);
+	static CTMatrix< BYTE > CImageProcess::Difference_filter(const CTMatrix< BYTE >& gray_image, long delta);
 };
 
 #endif//_MFCDEMO2_IMAGEPROCESS_H_
